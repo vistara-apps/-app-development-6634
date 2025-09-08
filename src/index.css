@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background: linear-gradient(135deg, hsl(220 20% 12%) 0%, hsl(240 30% 8%) 100%);
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .glass {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .neon-border {
+    border: 2px solid transparent;
+    background: linear-gradient(hsl(220 25% 16%), hsl(220 25% 16%)) padding-box,
+                linear-gradient(45deg, hsl(220 80% 50%), hsl(280 80% 50%)) border-box;
+  }
+  
+  .space-bg {
+    background: radial-gradient(ellipse at center, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
+  }
+}
