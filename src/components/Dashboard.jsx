@@ -1,46 +1,124 @@
-import React from 'react';
-import { Sword, Trophy, Star, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Sword, Trophy, Star, TrendingUp, Loader2, AlertCircle } from 'lucide-react';
+import { useAccount } from 'wagmi';
 import NFTCard from './NFTCard';
 import StatsCard from './StatsCard';
+import nftService from '../services/nftService';
+import battleService from '../services/battleService';
+import { useBaseMiniApp } from '../hooks/useBaseMiniApp';
 
 const Dashboard = ({ onNavigate }) => {
-  // Mock NFT data
-  const userNFTs = [
-    {
-      id: 1,
-      name: 'Cosmic Warrior',
-      image: '/api/placeholder/200/200',
-      power: 85,
-      level: 12,
-      rarity: 'Legendary',
-      attributes: { attack: 92, defense: 78, speed: 88 }
-    },
-    {
-      id: 2,
-      name: 'Nebula Guardian',
-      image: '/api/placeholder/200/200',
-      power: 73,
-      level: 8,
-      rarity: 'Epic',
-      attributes: { attack: 65, defense: 95, speed: 60 }
-    },
-    {
-      id: 3,
-      name: 'Stellar Knight',
-      image: '/api/placeholder/200/200',
-      power: 67,
-      level: 6,
-      rarity: 'Rare',
-      attributes: { attack: 70, defense: 55, speed: 85 }
-    }
-  ];
+  const { address } = useAccount();
+  const { setPrimaryButton, showNotification } = useBaseMiniApp();
+  const [userNFTs, setUserNFTs] = useState([]);
+  const [playerStats, setPlayerStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const stats = [
-    { label: 'Total Battles', value: '47', icon: Sword, change: '+12%' },
-    { label: 'Win Rate', value: '68%', icon: Trophy, change: '+5%' },
-    { label: 'Arena Rank', value: '#342', icon: Star, change: '+23' },
-    { label: 'Total Power', value: '225', icon: TrendingUp, change: '+8%' }
-  ];
+  useEffect(() => {
+    if (address) {
+      loadDashboardData();
+    }
+  }, [address]);
+
+  useEffect(() => {
+    // Set primary button for Base MiniApp
+    setPrimaryButton({
+      text: 'Find Battle',
+      action: () => onNavigate('battle')
+    });
+  }, [setPrimaryButton, onNavigate]);
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Load NFTs and battle stats in parallel
+      const [nfts, stats] = await Promise.all([
+        nftService.getUserNFTs(address),
+        battleService.getPlayerStats(address)
+      ]);
+
+      setUserNFTs(nfts);
+      setPlayerStats(stats);
+    } catch (err) {
+      console.error('Error loading dashboard data:', err);
+      setError('Failed to load dashboard data. Please try again.');
+      showNotification('Failed to load dashboard data', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatsData = () => {
+    if (!playerStats) {
+      return [
+        { label: 'Total Battles', value: '0', icon: Sword, change: '+0%' },
+        { label: 'Win Rate', value: '0%', icon: Trophy, change: '+0%' },
+        { label: 'Arena Rank', value: 'Novice', icon: Star, change: '+0' },
+        { label: 'Total Power', value: '0', icon: TrendingUp, change: '+0%' }
+      ];
+    }
+
+    const totalPower = userNFTs.reduce((sum, nft) => sum + nft.power, 0);
+    
+    return [
+      { 
+        label: 'Total Battles', 
+        value: playerStats.totalBattles.toString(), 
+        icon: Sword, 
+        change: `+${Math.max(playerStats.totalBattles - 5, 0)}` 
+      },
+      { 
+        label: 'Win Rate', 
+        value: `${playerStats.winRate}%`, 
+        icon: Trophy, 
+        change: `+${Math.max(playerStats.winRate - 50, 0)}%` 
+      },
+      { 
+        label: 'Arena Rank', 
+        value: playerStats.currentRank, 
+        icon: Star, 
+        change: `${playerStats.nextRankProgress}%` 
+      },
+      { 
+        label: 'Total Power', 
+        value: totalPower.toString(), 
+        icon: TrendingUp, 
+        change: `+${Math.floor(totalPower * 0.1)}` 
+      }
+    ];
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-accent" />
+          <p className="text-subtle">Loading your arena data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center glass rounded-lg p-8 max-w-md">
+          <AlertCircle className="w-8 h-8 mx-auto mb-4 text-red-400" />
+          <h3 className="text-xl font-semibold mb-2">Error Loading Dashboard</h3>
+          <p className="text-subtle mb-4">{error}</p>
+          <button
+            onClick={loadDashboardData}
+            className="bg-primary hover:bg-primary/80 text-white font-semibold py-2 px-4 rounded-md transition-all duration-200"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -56,7 +134,7 @@ const Dashboard = ({ onNavigate }) => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {stats.map((stat, index) => (
+        {getStatsData().map((stat, index) => (
           <StatsCard key={index} {...stat} />
         ))}
       </div>

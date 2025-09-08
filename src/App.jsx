@@ -6,6 +6,7 @@ import BattleArena from './components/BattleArena';
 import Shop from './components/Shop';
 import Newsletter from './components/Newsletter';
 import FloatingParticles from './components/FloatingParticles';
+import NotificationSystem from './components/NotificationSystem';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -46,6 +47,7 @@ function App() {
           )}
         </main>
       </div>
+      <NotificationSystem />
     </div>
   );
 }
